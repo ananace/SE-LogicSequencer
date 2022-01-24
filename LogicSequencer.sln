@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{0DE2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogicSequencer", "Data\Scripts\LogicSequencer\LogicSequencer.csproj", "{56967640-4051-4D29-A658-76E73F852491}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RichHudFramework", "Data\Scripts\RichHudFramework\RichHudFramework.csproj", "{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -22,9 +24,14 @@ Global
 		{56967640-4051-4D29-A658-76E73F852491}.Debug|x64.Build.0 = Debug|x64
 		{56967640-4051-4D29-A658-76E73F852491}.Release|x64.ActiveCfg = Release|x64
 		{56967640-4051-4D29-A658-76E73F852491}.Release|x64.Build.0 = Release|x64
+		{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6}.Debug|x64.ActiveCfg = Debug|x64
+		{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6}.Debug|x64.Build.0 = Debug|x64
+		{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6}.Release|x64.ActiveCfg = Release|x64
+		{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0DE2C032-D19F-481E-B3F1-0019FBDC97CB} = {EEF3AA76-B38F-4193-A9ED-0155DB03FF4D}
 		{56967640-4051-4D29-A658-76E73F852491} = {0DE2C032-D19F-481E-B3F1-0019FBDC97CB}
+		{AF1338E7-87EA-41C4-BC6D-AEC7861E38A6} = {0DE2C032-D19F-481E-B3F1-0019FBDC97CB}
 	EndGlobalSection
 EndGlobal
