@@ -4,6 +4,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>6</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!-- 'MyTransparentGeometry.AddTriangleBillboard(Vector3D, Vector3D, Vector3D, Vector3, Vector3, Vector3, Vector2, Vector2, Vector2, MyStringId, uint, Vector3D, Vector4, MyBillboard.BlendTypeEnum)' is obsolete: 'Only for modders' -->
+    <NoWarn>CS0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
