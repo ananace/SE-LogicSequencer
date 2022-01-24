@@ -16,7 +16,8 @@ namespace LogicSequencer.Script
     [ProtoInclude(110, typeof(Actions.RepeatUntil))]
     [ProtoInclude(111, typeof(Actions.RepeatWhile))]
     [ProtoInclude(112, typeof(Actions.SetVariables))]
-    [ProtoInclude(113, typeof(Actions.WaitTrigger))]
+    [ProtoInclude(113, typeof(Actions.StorePermanentVariables))]
+    [ProtoInclude(114, typeof(Actions.WaitTrigger))]
     [ProtoContract]
     [XmlInclude(typeof(Actions.ArithmeticComplex))]
     [XmlInclude(typeof(Actions.ArithmeticSimple))]
@@ -31,6 +32,7 @@ namespace LogicSequencer.Script
     [XmlInclude(typeof(Actions.RepeatUntil))]
     [XmlInclude(typeof(Actions.RepeatWhile))]
     [XmlInclude(typeof(Actions.SetVariables))]
+    [XmlInclude(typeof(Actions.StorePermanentVariables))]
     [XmlInclude(typeof(Actions.WaitTrigger))]
     // Abstract class instead of interface to make XML serialization possible
     public abstract class ScriptAction : IScriptPiece

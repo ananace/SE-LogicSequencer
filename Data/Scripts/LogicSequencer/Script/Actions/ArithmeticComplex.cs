@@ -1,3 +1,4 @@
+using System;
 using System.Xml.Serialization;
 using ProtoBuf;
 
@@ -31,12 +32,15 @@ namespace LogicSequencer.Script.Actions
             public bool IsValid => (IsData || IsArithmetic) && !(IsData && IsArithmetic) && (!IsData || DataSource.IsValid) && (!IsArithmetic || Arithmetic.IsValid);
         }
 
+        // Serialize operators as string to avoid changes if the operator list is updated
         [ProtoMember(1, IsRequired = false)]
-        public Helper.MathHelper.OperationType? Operator { get; set; }
-        [ProtoMember(2, IsRequired = false)]
-        public Helper.MathHelper.SingleObjectOperationType? SingleOperator { get; set; }
+        public string Operator { get; set; }
         [XmlIgnore]
-        public bool SingleOperatorSpecified => SingleOperator.HasValue;
+        public Helper.MathHelper.OperationType OperatorType => (Helper.MathHelper.OperationType)Enum.Parse(typeof(Helper.MathHelper.OperationType), Operator, true);
+        [ProtoMember(2, IsRequired = false)]
+        public string SingleOperator { get; set; }
+        [XmlIgnore]
+        public Helper.MathHelper.SingleObjectOperationType SingleOperatorType => (Helper.MathHelper.SingleObjectOperationType)Enum.Parse(typeof(Helper.MathHelper.SingleObjectOperationType), SingleOperator, true);
 
         [ProtoMember(3)]
         public Part LHS { get; set; }
@@ -50,9 +54,15 @@ namespace LogicSequencer.Script.Actions
 
         public virtual bool IsValid { get {
             if (IsSingle)
-                return Operator == null && LHS == null && RHS != null && RHS.IsValid;
+            {
+                Helper.MathHelper.SingleObjectOperationType op;
+                return Operator == null && SingleOperator != null && !SingleOperator.StartsWith("_") && Enum.TryParse(SingleOperator, true, out op) && LHS == null && RHS != null && RHS.IsValid;
+            }
             else
-                return SingleOperator == null && LHS != null && LHS.IsValid && RHS != null && RHS.IsValid;
+            {
+                Helper.MathHelper.OperationType op;
+                return SingleOperator == null && Operator != null && !Operator.StartsWith("_") && Enum.TryParse(Operator, true, out op) && LHS != null && LHS.IsValid && RHS != null && RHS.IsValid;
+            }
         } }
     }
 

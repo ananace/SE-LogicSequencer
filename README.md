@@ -10,3 +10,5 @@ The design of the logic sequences is heavily inspired by Home Assistant, albeit
 with some limitations due to how Space Engineers works in regards to modding.
 
 **NB**; Still heavily WIP, expect it to not work at all.
+
+Issues and PRs are welcome [at GitHub](https://github.com/ananace/SE-LogicSequencer)

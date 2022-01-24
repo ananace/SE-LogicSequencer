@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using RichHudFramework.Client;
-using RichHudFramework.UI;
 using RichHudFramework.UI.Client;
 using Sandbox.ModAPI;
 using VRage.Game;
 using VRage.Game.Components;
-using VRageMath;
 
 namespace LogicSequencer
 {
@@ -39,6 +35,8 @@ namespace LogicSequencer
             if (MyAPIGateway.Multiplayer.IsServer)
                 MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
 
+            SetupModAPI();
+            RegisterInternalServices();
             TestSerialize();
         }
 
@@ -57,6 +55,14 @@ namespace LogicSequencer
         protected override void UnloadData()
         {
             Instance = null;
+
+            foreach (var vm in RunningScripts)
+                vm.Stop();
+            RunningScripts.Clear();
+            UnregisterServices();
+            UnloadModAPI();
+
+            MyAPIGateway.TerminalControls.CustomControlGetter -= CustomControlGetter;
             Util.Networking.Instance.Unregister();
         }
 
@@ -108,14 +114,14 @@ namespace LogicSequencer
                             RHS = new Script.Actions.ArithmeticComplexPart.Part {
                                 DataSource = new Script.DataSource { Value = new Script.ScriptValue { Integer = 2 } }
                             },
-                            Operator = Script.Helper.MathHelper.OperationType.Divide
+                            Operator = "Divide"
                         }
                     },
                     new Script.Actions.ConditionAction {
                         Condition = new Script.Conditions.Comparison {
                             SourceData = new Script.DataSource { VariableName = "output" },
                             ComparisonData = new Script.DataSource { Value = new Script.ScriptValue { Integer = 5 } },
-                            Operation = Script.Helper.MathHelper.OperationType.CompareEqual
+                            Operation = "CompareEqual"
                         }
                     },
                     new Script.Actions.Delay {
@@ -123,7 +129,7 @@ namespace LogicSequencer
                     },
                     new Script.Actions.ArithmeticSimpleSingle {
                         Operand = new Script.DataSource { VariableName = "output" },
-                        SingleOperator = Script.Helper.MathHelper.SingleObjectOperationType.Negate,
+                        SingleOperator = "Negate",
                         TargetVariable = "output"
                     }
                 }
@@ -146,21 +152,10 @@ namespace LogicSequencer
             HudMain.EnableCursor = false;
         }
 
-        IBindGroup editorBinds;
         void HudInit()
         {
             SequenceEditor = new UI.SequenceEditor(HudMain.HighDpiRoot) {
                 Visible = false
-            };
-
-            editorBinds = BindManager.GetOrCreateGroup("editorBinds");
-            editorBinds.RegisterBinds(new BindGroupInitializer()
-            {
-                { "editorToggle", VRage.Input.MyKeys.Home }
-            });
-
-            editorBinds[0].NewPressed += () => {
-                SequenceEditor.Visible = !SequenceEditor.Visible;
             };
         }
 
@@ -205,7 +200,7 @@ namespace LogicSequencer
                             new Script.Conditions.Comparison {
                                 SourceData = new Script.DataSource { Value = new Script.ScriptValue { Integer = 5 } },
                                 ComparisonData =  new Script.DataSource { Value = new Script.ScriptValue { Real = 4 } },
-                                Operation = Script.Helper.MathHelper.OperationType.CompareLesserEqual
+                                Operation = "CompareLesserEqual"
                             }
                         }
                     }
@@ -249,10 +244,10 @@ namespace LogicSequencer
                                             }
                                         }
                                     },
-                                    Operator = Script.Helper.MathHelper.OperationType.Divide
+                                    Operator = "Divide"
                                 }
                             },
-                            Operator = Script.Helper.MathHelper.OperationType.Multiply,
+                            Operator = "Multiply",
                         },
                         TargetVariable = "value2"
                     }

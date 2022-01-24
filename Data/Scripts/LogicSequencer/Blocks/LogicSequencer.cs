@@ -17,7 +17,7 @@ namespace LogicSequencer.Blocks
     public class LogicSequencer : MyGameLogicComponent
     {
         [Flags]
-        enum ChangedSettingsFlags
+        public enum ChangedSettingsFlags
         {
             Settings = 0x01,
             Script = 0x02
@@ -44,6 +44,15 @@ namespace LogicSequencer.Blocks
         public bool SupportsMaxRuns => StartMode == ProgramStartMode.Multiple || StartMode == ProgramStartMode.Queue;
 
         public IEnumerable<LogicProgramRun> CurrentExecutions => Session.Instance.RunningScripts.Where(r => r.LogicSequencer == this);
+
+        public void DoTrigger(ScriptTrigger trigger)
+        {
+            // TODO:
+            // if (!HasTrigger(trigger))
+            //   return;
+
+            SequenceStart(trigger);
+        }
 
         public void SequenceStart()
         {
@@ -97,7 +106,7 @@ namespace LogicSequencer.Blocks
         {
             try
             {
-               Session.Instance.RunningScripts.Remove(vm);
+                Session.Instance.RunningScripts.Remove(vm);
 
                 Entity.Components.Get<MyResourceSinkComponent>()?.Update();
             }
@@ -455,7 +464,7 @@ namespace LogicSequencer.Blocks
         ChangedSettingsFlags _changed = 0;
 
         // @Digi storage and serialization
-        void SettingsChanged(ChangedSettingsFlags flags = ChangedSettingsFlags.Settings)
+        public void SettingsChanged(ChangedSettingsFlags flags = ChangedSettingsFlags.Settings)
         {
             _changed |= flags;
             if (syncCountdown == 0)

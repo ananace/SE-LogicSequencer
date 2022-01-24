@@ -4,7 +4,7 @@ using ProtoBuf;
 namespace LogicSequencer.Script.Actions
 {
     [ProtoContract]
-    public class SetVariables : ScriptAction
+    public class StorePermanentVariables : ScriptAction
     {
         [ProtoMember(1)]
         public VRage.Serialization.SerializableDictionary<string, DataSource> Variables { get; set; } = new VRage.Serialization.SerializableDictionary<string, DataSource>();

@@ -6,7 +6,7 @@ namespace LogicSequencer.Script.Actions
     public class BlockGetProperty : ScriptAction
     {
         [ProtoMember(1)]
-        public long BlockID { get; set; }
+        public BlockSelector Block { get; set; }
 
         [ProtoMember(2)]
         public string Property { get; set; }
@@ -15,6 +15,6 @@ namespace LogicSequencer.Script.Actions
         [ProtoMember(4)]
         public string IntoVariable { get; set; }
 
-        public override bool IsValid => BlockID != 0 && !string.IsNullOrEmpty(Property) && !string.IsNullOrEmpty(IntoVariable);
+        public override bool IsValid => Block.IsValid && !string.IsNullOrEmpty(Property) && !string.IsNullOrEmpty(IntoVariable);
     }
 }

@@ -171,7 +171,10 @@ namespace LogicSequencer
                 action.ValidForGroups = control.SupportsMultipleBlocks;
                 action.Name = new StringBuilder("Run");
                 action.Icon = @"Textures\GUI\Icons\Actions\SwitchOn.dds";
-                action.Action = control.Action;
+                action.Action = (block) => {
+                    var logic = block?.GameLogic as Blocks.LogicSequencer;
+                    logic?.DoTrigger(new Script.Triggers.Action());
+                };
                 TC.AddAction<IMyUpgradeModule>(action);
             }
 

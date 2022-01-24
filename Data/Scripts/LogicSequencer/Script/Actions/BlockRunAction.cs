@@ -6,11 +6,11 @@ namespace LogicSequencer.Script.Actions
     public class BlockRunAction : ScriptAction
     {
         [ProtoMember(1)]
-        public long BlockID { get; set; }
+        public BlockSelector Block { get; set; }
 
         [ProtoMember(2)]
         public string Action { get; set; }
 
-        public override bool IsValid => BlockID != 0 && !string.IsNullOrEmpty(Action);
+        public override bool IsValid => Block.IsValid && !string.IsNullOrEmpty(Action);
     }
 }

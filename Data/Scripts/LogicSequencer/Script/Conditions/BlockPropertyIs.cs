@@ -7,7 +7,7 @@ namespace LogicSequencer.Script.Conditions
     public class BlockPropertyIs : ScriptCondition
     {
         [ProtoMember(1)]
-        public long BlockID { get; set; }
+        public BlockSelector Block { get; set; }
 
         [ProtoMember(2)]
         public string Property { get; set; }
@@ -20,6 +20,6 @@ namespace LogicSequencer.Script.Conditions
         [XmlIgnore]
         public bool TypeSpecified => Type.HasValue;
 
-        public override bool IsValid => BlockID != 0 && !string.IsNullOrEmpty(Property) && !string.IsNullOrEmpty(StoreInVariable);
+        public override bool IsValid => Block.IsValid && !string.IsNullOrEmpty(Property) && !string.IsNullOrEmpty(StoreInVariable);
     }
 }

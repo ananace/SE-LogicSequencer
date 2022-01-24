@@ -60,11 +60,9 @@ namespace LogicSequencer
         {
             var realCondition = condition as Script.Conditions.BlockPropertyIs;
 
-            var gts = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
-
-            var block = gts.GetBlockWithId(realCondition.BlockID);
+            var block = ResolveBlockSelector(realCondition.Block);
             if (block == null)
-                throw new ArgumentException($"Failed to find a block with the ID {realCondition.BlockID}");
+                throw new ArgumentException($"Failed to find a block with the selector {realCondition.Block}");
 
             var prop = block.GetProperty(realCondition.Property);
             if (prop == null)
@@ -92,7 +90,7 @@ namespace LogicSequencer
             var sourceData = ResolveDataSource(realCondition.SourceData);
             var comparisonData = ResolveDataSource(realCondition.ComparisonData);
 
-            return MathHelper.PerformOperation(realCondition.Operation, sourceData, comparisonData).ConvertToBoolean().Boolean;
+            return MathHelper.PerformOperation(realCondition.OperationType, sourceData, comparisonData).ConvertToBoolean().Boolean;
         }
 
         bool HandleHasVariableCondition(ScriptCondition condition)

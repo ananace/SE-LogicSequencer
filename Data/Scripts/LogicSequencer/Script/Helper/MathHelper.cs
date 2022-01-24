@@ -29,6 +29,7 @@ namespace LogicSequencer.Script.Helper
             CompareGreaterEqual,
             CompareLesserThan,
             CompareLesserEqual,
+            CompareContains,
 
             _ComparisonEnd,
             _StringStart = _ComparisonEnd,
@@ -88,7 +89,7 @@ namespace LogicSequencer.Script.Helper
             if (part.IsSingle)
             {
                 var data = run.ResolveDataSource(part.RHS.DataSource);
-                return DoOperation(part.SingleOperator.Value, data);
+                return DoOperation(part.SingleOperatorType, data);
             }
 
             ScriptValue lhs, rhs;
@@ -103,7 +104,7 @@ namespace LogicSequencer.Script.Helper
             else
                 rhs = ResolveArithmeticPart(part.RHS.Arithmetic, run);
 
-            return PerformOperation(part.Operator.Value, lhs, rhs);
+            return PerformOperation(part.OperatorType, lhs, rhs);
         }
 
         public static ScriptValue DoOperation(OperationType op, IEnumerable<ScriptValue> objects)
@@ -302,6 +303,7 @@ namespace LogicSequencer.Script.Helper
             var valueB = objB.String;
             switch (op)
             {
+            case OperationType.CompareContains: return new ScriptValue { Boolean = valueA.Contains(valueB) };
             case OperationType.StringAdd: return new ScriptValue { String = valueA + valueB };
             case OperationType.StringRemove: return new ScriptValue { String = valueA.Replace(valueB, "") };
             }

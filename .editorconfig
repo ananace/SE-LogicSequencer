@@ -13,7 +13,7 @@ indent_style = space
 [Makefile]
 indent_style = tab
 
-[*.sbc]
+[*.{sbc,csproj}]
 indent_size = 2
 
 [*.{cs,sbc}]

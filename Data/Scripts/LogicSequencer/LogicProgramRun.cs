@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LogicSequencer.Script;
 using ProtoBuf;
+using Sandbox.ModAPI;
 
 namespace LogicSequencer
 {
@@ -210,6 +211,47 @@ namespace LogicSequencer
             }
             else
                 return dataSource.Value;
+        }
+
+        public IMyTerminalBlock ResolveBlockSelector(BlockSelector selector)
+        {
+            var terminalSystem = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
+            if (terminalSystem == null)
+                throw new ArgumentException("Unable to find a terminal system");
+
+            IMyTerminalBlock block = null;
+            if (selector.IDSpecified)
+                block = terminalSystem.GetBlockWithId(selector.ID.Value) as IMyTerminalBlock;
+            if (block == null && !string.IsNullOrEmpty(selector.Name))
+                block = terminalSystem.GetBlockWithName(selector.Name);
+
+            return block;
+        }
+
+        public IEnumerable<IMyTerminalBlock> ResolveMultiBlockSelector(MultiBlockSelector selector)
+        {
+            if (selector.Blocks != null)
+                return selector.Blocks.Select(s => ResolveBlockSelector(s));
+
+            var terminalSystem = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
+            if (terminalSystem == null)
+                throw new ArgumentException("Unable to find a terminal system");
+
+            List<IMyTerminalBlock> blocks = new List<IMyTerminalBlock>();
+            if (!string.IsNullOrEmpty(selector.GroupName))
+            {
+                var group = terminalSystem.GetBlockGroupWithName(selector.GroupName);
+                if (group == null)
+                    throw new ArgumentException($"Unable to find a group with the name {selector.GroupName}");
+
+                group.GetBlocks(blocks);
+            }
+            else if (!string.IsNullOrEmpty(selector.Name))
+                terminalSystem.SearchBlocksOfName(selector.Name, blocks);
+            else
+                throw new ArgumentException("No applicable multiblock selector provided");
+
+            return blocks;
         }
     }
 }

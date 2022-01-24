@@ -23,6 +23,7 @@ namespace LogicSequencer.UI
 
                 var nameLabel = new Label() {
                     Text = "Name",
+                    Padding = new Vector2(5, 0)
                 };
                 nameEditor = new TextBox() {
                     Text = "Name",
@@ -34,6 +35,7 @@ namespace LogicSequencer.UI
 
                 var descriptionLabel = new Label() {
                     Text = "Description",
+                    Padding = new Vector2(5, 0)
                 };
                 descriptionEditor = new TextBox() {
                     Text = "Description",
@@ -50,8 +52,7 @@ namespace LogicSequencer.UI
 
             protected override void Layout()
             {
-                base.Layout();
-                //Width = Math.Max(Width, layout.Width + Padding.X);
+                Width = Math.Max(Width, layout.Width + Padding.X);
             }
 
             public void Load()

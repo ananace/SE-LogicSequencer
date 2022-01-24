@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-
     <Reference Include="ProtoBuf.Net">
       <HintPath>..\Bin64\ProtoBuf.Net.dll</HintPath>
     </Reference>
@@ -47,6 +46,10 @@
     <Reference Include="VRage.Render">
       <HintPath>..\Bin64\VRage.Render.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RichHudFramework\RichHudFramework.csproj" />
   </ItemGroup>
 
 </Project>
