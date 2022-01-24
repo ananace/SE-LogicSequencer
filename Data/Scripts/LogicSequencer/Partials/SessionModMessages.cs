@@ -45,7 +45,7 @@ namespace LogicSequencer
 
             try
             {
-                modMethods.Invoke(RegisterModService, UnregisterService);
+                modMethods.Invoke((modDef) => RegisterModService(modName, modDef), UnregisterService);
             }
             catch (Exception ex)
             {
@@ -53,9 +53,10 @@ namespace LogicSequencer
             }
         }
 
-        void RegisterModService(ModServiceDefinition definition)
+        void RegisterModService(string modName, ModServiceDefinition definition)
         {
             var service = new Script.Services.ModService {
+                ModName = modName,
                 ModProvidedID = definition.Item1,
                 ModProvidedName = definition.Item2,
                 ModProvidedDescription = definition.Item3,
