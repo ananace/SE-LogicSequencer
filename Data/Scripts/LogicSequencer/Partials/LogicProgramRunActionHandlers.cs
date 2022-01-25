@@ -35,14 +35,22 @@ namespace LogicSequencer
             _ActionHandlers.Add(typeof(Script.Actions.WaitTrigger), HandleWaitTriggerAction);
         }
 
+        readonly System.Diagnostics.Stopwatch actionTimer = new System.Diagnostics.Stopwatch();
         void RunAction(ScriptAction action)
         {
             var handler = _ActionHandlers[action.GetType()];
             if (handler == null)
                 return;
 
+            actionTimer.Reset();
             Log.Debug($"Invoking handler for {action}");
+
+            actionTimer.Start();
             handler.Invoke(action);
+            actionTimer.Stop();
+
+            if (actionTimer.ElapsedMilliseconds >= 1)
+                Log.Info($"Invoking {action} took {actionTimer.ElapsedMilliseconds} ms");
         }
 
         void HandleArithmeticComplexAction(ScriptAction action)

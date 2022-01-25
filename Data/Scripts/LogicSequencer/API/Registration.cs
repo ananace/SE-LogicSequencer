@@ -143,7 +143,7 @@ namespace LogicSequencer.API
 
             try
             {
-                RegistrationFinished.Invoke();
+                RegistrationFinished?.Invoke();
             }
             catch (Exception ex)
             {

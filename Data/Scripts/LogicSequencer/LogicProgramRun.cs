@@ -166,9 +166,6 @@ namespace LogicSequencer
 
                 return false;
             }
-            finally
-            {
-            }
 
             return true;
         }

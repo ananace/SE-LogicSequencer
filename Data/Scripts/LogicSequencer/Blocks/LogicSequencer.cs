@@ -80,13 +80,10 @@ namespace LogicSequencer.Blocks
                     }
                 }
 
-                LogicProgramRun vm;
-                if (StartMode == ProgramStartMode.Queue)
-                    vm = new LogicProgramRunQueued(this);
-                else
-                    vm = new LogicProgramRun(this);
-
-                vm.TriggeredBy = trigger;
+                LogicProgramRun vm = new LogicProgramRun(this)
+                {
+                    TriggeredBy = trigger
+                };
 
                 Session.Instance.RunningScripts.Add(vm);
                 if (StartMode == ProgramStartMode.Restart)
@@ -141,7 +138,7 @@ namespace LogicSequencer.Blocks
                 var executions = CurrentExecutions.ToArray();
                 foreach (var vm in executions)
                 {
-                    if (!vm.IsActive)
+                    if (!vm.IsActive && StartMode != ProgramStartMode.Queue)
                         continue;
 
                     vm.RunStep();

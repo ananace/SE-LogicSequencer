@@ -131,6 +131,13 @@ namespace LogicSequencer
                         Operand = new Script.DataSource { VariableName = "output" },
                         SingleOperator = "Negate",
                         TargetVariable = "output"
+                    },
+                    new Script.Actions.StorePermanentVariables {
+                        Variables = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
+                            Dictionary = new Dictionary<string, Script.DataSource> {
+                                { "result", new Script.DataSource { VariableName = "output "} }
+                            }
+                        }
                     }
                 }
             };
@@ -167,7 +174,11 @@ namespace LogicSequencer
         void TestSerialize()
         {
             var variables = new VRage.Serialization.SerializableDictionary<string, Script.ScriptValue>();
-            variables["value"] = new Script.ScriptValue { Integer = 2 };
+            variables["null"] = new Script.ScriptValue(); // TODO: Handle this in scripts?
+            variables["boolean"] = new Script.ScriptValue { Boolean = true };
+            variables["integer"] = new Script.ScriptValue { Integer = 2 };
+            variables["real"] = new Script.ScriptValue { Real = 3.0 };
+            variables["string"] = new Script.ScriptValue { String = "Hello" };
 
             var testScript = new Script.ScriptSequence {
                 Name = "Testing",
@@ -191,19 +202,6 @@ namespace LogicSequencer
                     new Script.Conditions.Or { },
                     new Script.Conditions.VariableIsTruthy { },
                     new Script.Conditions.VariableIsType { },
-
-                    new Script.Conditions.Or {
-                        Conditions = new List<Script.ScriptCondition> {
-                            new Script.Conditions.HasVariable {
-                                Variable = "potatis"
-                            },
-                            new Script.Conditions.Comparison {
-                                SourceData = new Script.DataSource { Value = new Script.ScriptValue { Integer = 5 } },
-                                ComparisonData =  new Script.DataSource { Value = new Script.ScriptValue { Real = 4 } },
-                                Operation = "CompareLesserEqual"
-                            }
-                        }
-                    }
                 },
                 Actions = new List<Script.ScriptAction> {
                     new Script.Actions.ArithmeticComplex { },
@@ -212,6 +210,7 @@ namespace LogicSequencer
                     new Script.Actions.BlockGetProperty { },
                     new Script.Actions.BlockRunAction { },
                     new Script.Actions.BlockSetProperty { },
+                    new Script.Actions.CallService { },
                     new Script.Actions.Choose { },
                     new Script.Actions.ConditionAction { },
                     new Script.Actions.Delay { },
@@ -219,46 +218,20 @@ namespace LogicSequencer
                     new Script.Actions.RepeatUntil { },
                     new Script.Actions.RepeatWhile { },
                     new Script.Actions.SetVariables { },
+                    new Script.Actions.StorePermanentVariables { },
                     new Script.Actions.WaitTrigger { },
-
-                    new Script.Actions.ArithmeticComplex {
-                        Part = new Script.Actions.ArithmeticComplexPart {
-                            LHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                DataSource = new Script.DataSource {
-                                    VariableName = "value"
-                                }
-                            },
-                            RHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                Arithmetic = new Script.Actions.ArithmeticComplexPart {
-                                    LHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                        DataSource = new Script.DataSource {
-                                            Value = new Script.ScriptValue {
-                                                Integer = 5
-                                            }
-                                        }
-                                    },
-                                    RHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                        DataSource = new Script.DataSource {
-                                            Value = new Script.ScriptValue {
-                                                Real = 2
-                                            }
-                                        }
-                                    },
-                                    Operator = "Divide"
-                                }
-                            },
-                            Operator = "Multiply",
-                        },
-                        TargetVariable = "value2"
-                    }
                 }
             };
 
-            var serialized = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(testScript));
-            var unserialized = MyAPIGateway.Utilities.SerializeFromBinary<Script.ScriptSequence>(Convert.FromBase64String(serialized));
-
-            Util.Log.Debug(MyAPIGateway.Utilities.SerializeToXML(testScript));
-            Util.Log.Debug(MyAPIGateway.Utilities.SerializeToXML(unserialized));
+            try
+            {
+                var serialized = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(testScript));
+                var unserialized = MyAPIGateway.Utilities.SerializeFromBinary<Script.ScriptSequence>(Convert.FromBase64String(serialized));
+            }
+            catch (Exception ex)
+            {
+                Util.Log.Error("In TestSerialize()", ex, GetType());
+            }
         }
     }
 }
