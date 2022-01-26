@@ -8,12 +8,12 @@ namespace LogicSequencer.Script
     public class MultiBlockSelector
     {
         [ProtoMember(1, IsRequired = false)]
-        public string Name { get; set; }
+        public DataSource Name { get; set; }
         [ProtoMember(2, IsRequired = false)]
-        public string GroupName { get; set; }
+        public DataSource GroupName { get; set; }
         [ProtoMember(3, IsRequired = false)]
         public List<BlockSelector> Blocks { get; set; }
 
-        public bool IsValid => !string.IsNullOrEmpty(Name) || !string.IsNullOrEmpty(GroupName) || (Blocks != null && Blocks.Any() && Blocks.All(b => b.IsValid));
+        public bool IsValid => (Name != null && Name.IsValid) || (GroupName != null && GroupName.IsValid) || (Blocks != null && Blocks.Any() && Blocks.All(b => b.IsValid));
     }
 }

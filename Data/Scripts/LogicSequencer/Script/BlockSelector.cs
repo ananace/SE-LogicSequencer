@@ -9,11 +9,15 @@ namespace LogicSequencer.Script
         [ProtoMember(1, IsRequired = false)]
         public long? ID { get; set; }
         [ProtoMember(2, IsRequired = false)]
-        public string Name { get; set; }
+        public DataSource Name { get; set; }
+        [ProtoMember(3, IsRequired = false)]
+        public bool? Self { get; set; }
 
         [XmlIgnore]
         public bool IDSpecified => ID.HasValue;
+        [XmlIgnore]
+        public bool SelfSpecified => Self.HasValue;
 
-        public bool IsValid => IDSpecified || !string.IsNullOrEmpty(Name);
+        public bool IsValid => IDSpecified || SelfSpecified || (Name != null && Name.IsValid);
     }
 }

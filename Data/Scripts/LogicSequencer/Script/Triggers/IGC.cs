@@ -11,14 +11,14 @@ namespace LogicSequencer.Script.Triggers
             Unicast
         }
 
-        [ProtoMember(1)]
+        [ProtoMember(2)]
         public string Tag { get; set; }
 
-        [ProtoMember(2)]
+        [ProtoMember(3)]
         public IGCSource Source { get; set; }
-        [ProtoMember(3, IsRequired = false)]
-        public string DataVariable { get; set; }
         [ProtoMember(4, IsRequired = false)]
+        public string DataVariable { get; set; }
+        [ProtoMember(5, IsRequired = false)]
         public string SourceVariable { get; set; }
 
         public override bool IsValid => !string.IsNullOrEmpty(Tag);

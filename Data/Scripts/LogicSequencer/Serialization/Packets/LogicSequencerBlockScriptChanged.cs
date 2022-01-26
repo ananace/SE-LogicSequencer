@@ -16,10 +16,7 @@ namespace LogicSequencer.Serialization.Packets
 
         public override bool Received()
         {
-            if (AsBlock == null)
-                return false;
-
-            var logic = AsBlock.GameLogic?.GetAs<Blocks.LogicSequencer>();
+            var logic = AsBlock?.GameLogic?.GetAs<Blocks.LogicSequencer>();
 
             if (logic == null)
                 return false;

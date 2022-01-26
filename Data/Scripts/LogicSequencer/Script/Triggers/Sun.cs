@@ -12,9 +12,9 @@ namespace LogicSequencer.Script.Triggers
             Sunset
         }
 
-        [ProtoMember(1)]
+        [ProtoMember(2)]
         public SunState Event { get; set; }
-        [ProtoMember(2, IsRequired = false)]
+        [ProtoMember(3, IsRequired = false)]
         public TimeSpan? Offset { get; set; } = null;
 
         public override bool IsValid => true;

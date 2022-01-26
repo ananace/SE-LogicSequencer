@@ -1,3 +1,4 @@
+using System;
 using System.Xml.Serialization;
 using ProtoBuf;
 
@@ -15,8 +16,15 @@ namespace LogicSequencer.Script
     [XmlInclude(typeof(Triggers.Sun))]
     [XmlInclude(typeof(Triggers.Time))]
     // Abstract class instead of interface to make XML serialization possible
-    public abstract class ScriptTrigger : IScriptPiece
+    public abstract class ScriptTrigger : IScriptPiece, IEquatable<ScriptTrigger>
     {
+        [ProtoMember(1)]
+        public string Name { get; set; }
+
         public abstract bool IsValid { get; }
+        public virtual bool Equals(ScriptTrigger other)
+        {
+            return GetType() == other.GetType() && Name == other.Name;
+        }
     }
 }

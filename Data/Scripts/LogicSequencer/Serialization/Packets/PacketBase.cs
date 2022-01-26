@@ -11,10 +11,6 @@ namespace LogicSequencer.Serialization.Packets
     [ProtoContract(UseProtoMembersOnly = true)]
     public abstract class PacketBase
     {
-        // this field's value will be sent if it's not the default value.
-        // to define a default value you must use the [DefaultValue(...)] attribute.
-        //[ProtoMember(1)]
-
         public ulong SenderId;
         public bool SentFromServer;
 

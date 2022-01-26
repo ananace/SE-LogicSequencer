@@ -8,6 +8,7 @@ using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using VRage.Game.Components;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 
@@ -28,6 +29,7 @@ namespace LogicSequencer.Blocks
 
         Serialization.LogicSequencerBlockSettings Settings { get; set; } = new Serialization.LogicSequencerBlockSettings();
 
+        readonly List<ScriptTrigger> activeTriggers = new List<ScriptTrigger>();
         ScriptSequence _Script = new ScriptSequence();
         public ScriptSequence Script { get { return _Script ?? new ScriptSequence(); } set { _Script = value ?? new ScriptSequence(); ReloadScript(); SettingsChanged(ChangedSettingsFlags.Script); } }
         public IMyUpgradeModule Block { get; private set; }
@@ -47,9 +49,8 @@ namespace LogicSequencer.Blocks
 
         public void DoTrigger(ScriptTrigger trigger)
         {
-            // TODO:
-            // if (!HasTrigger(trigger))
-            //   return;
+            if (!HasTrigger(trigger))
+                return;
 
             SequenceStart(trigger);
         }
@@ -65,6 +66,15 @@ namespace LogicSequencer.Blocks
             {
                 if (_Script == null)
                     return;
+
+                var waiting = CurrentExecutions.Where(e => e.WaitingForTrigger == trigger);
+                if (waiting.Any())
+                {
+                    waiting.First().WaitingForDuration = null;
+                    waiting.First().WaitingForTrigger = null;
+                    ReloadTriggers();
+                    return;
+                }
 
                 if (IsRunning)
                 {
@@ -143,6 +153,9 @@ namespace LogicSequencer.Blocks
 
                     vm.RunStep();
 
+                    if (vm.WaitingForTrigger != null)
+                        ReloadTriggers();
+
                     if (vm.IsCompleted)
                         SequenceStop(vm);
                     else if (StartMode == ProgramStartMode.Queue)
@@ -161,6 +174,47 @@ namespace LogicSequencer.Blocks
             Block.CustomData = MyAPIGateway.Utilities.SerializeToXML(_Script);
         }
 
+        public bool HasTrigger(ScriptTrigger trigger)
+        {
+            return activeTriggers.Any(t => t == trigger);
+        }
+
+        void HandleGridChange(IMySlimBlock block)
+        {
+            // TODO: debounce
+            DoTrigger(new Script.Triggers.GridChange());
+        }
+
+        void AddTrigger(ScriptTrigger trigger)
+        {
+            if (trigger is Script.Triggers.GridChange)
+            {
+                Block.CubeGrid.OnBlockAdded += HandleGridChange;
+                Block.CubeGrid.OnBlockRemoved += HandleGridChange;
+            }
+        }
+        void RemoveTrigger(ScriptTrigger trigger)
+        {
+            if (trigger is Script.Triggers.GridChange)
+            {
+                Block.CubeGrid.OnBlockAdded -= HandleGridChange;
+                Block.CubeGrid.OnBlockRemoved -= HandleGridChange;
+            }
+        }
+
+        public void ReloadTriggers()
+        {
+            // Set up triggers
+            var wanted = Script.Triggers.Concat(CurrentExecutions.Select(vm => vm.WaitingForTrigger).Where(t => t != null));
+            var toAdd = wanted.Except(activeTriggers);
+            var toRemove = activeTriggers.Except(wanted);
+
+            foreach (var add in toAdd)
+                AddTrigger(add);
+            foreach (var remove in toRemove)
+                RemoveTrigger(remove);
+        }
+
         void ReloadScript()
         {
             if (!MyAPIGateway.Multiplayer.IsServer)
@@ -169,8 +223,8 @@ namespace LogicSequencer.Blocks
             try
             {
                 Log.Debug("ReloadScript()");
-                // Set up triggers
 
+                ReloadTriggers();
             }
             catch (Exception ex)
             {
@@ -178,20 +232,50 @@ namespace LogicSequencer.Blocks
             }
         }
 
+        ushort emissiveStep = 0;
+        void UpdateEmissives()
+        {
+            VRageMath.Color color = VRageMath.Color.White;
+            if (IsRunning)
+            {
+                var executionId = emissiveStep++ % CurrentExecutions.Count();
+                var execution = CurrentExecutions.ElementAt(executionId);
+
+                if (execution.IsActive)
+                    color = VRageMath.Color.GreenYellow;
+                else if (execution.IsPaused)
+                    color = VRageMath.Color.AliceBlue;
+                else if (execution.IsFaulted)
+                    color = VRageMath.Color.OrangeRed;
+                else
+                    color = VRageMath.Color.Green;
+            }
+
+            Block.SetEmissiveParts("emissive", color, 1.0f);
+        }
+
         void SequenceAppendCustomInfo(IMyTerminalBlock block, StringBuilder builder)
         {
             try
             {
+                if (!string.IsNullOrEmpty(Script.Name))
+                {
+                    builder.AppendLine($"Current script: {Script.Name}");
+                    if (!string.IsNullOrEmpty(Script.Description))
+                        builder.AppendLine(Script.Description);
+                    builder.AppendLine();
+                }
+
                 if (IsRunning)
                 {
-                    builder.AppendLine("Logic Sequencer: Running");
+                    builder.AppendLine("State: Active");
                     builder.AppendLine("Current executions:");
                     foreach (var execution in CurrentExecutions)
-                        builder.AppendLine($" - For {DateTime.Now - execution.StartedAt}: {execution.StateName} at step {execution.CurrentExecutionStep}@{execution.CurrentExecutionTag}");
+                        builder.AppendLine($" - For {DateTime.Now - execution.StartedAt}: {execution.StateName} at step {execution.CurrentExecutionStep} in {execution.CurrentExecutionTag}");
                 }
                 else
                 {
-                    builder.AppendLine("Logic Sequencer: Idle");
+                    builder.AppendLine("State: Idle");
                 }
             }
             catch (Exception ex)
@@ -294,6 +378,7 @@ namespace LogicSequencer.Blocks
             try
             {
                 SyncSettings();
+                UpdateEmissives();
 
                 if (!Block.IsFunctional)
                  return;
@@ -302,6 +387,20 @@ namespace LogicSequencer.Blocks
                     return;
 
                 SequenceTick();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+
+        public override void UpdateBeforeSimulation10()
+        {
+            base.UpdateBeforeSimulation10();
+
+            try
+            {
+                UpdateEmissives();
             }
             catch (Exception e)
             {

@@ -15,7 +15,10 @@ namespace LogicSequencer.Script.Conditions
         public string Operation { get; set; }
 
         [XmlIgnore]
-        public Helper.MathHelper.OperationType OperationType => (Helper.MathHelper.OperationType)Enum.Parse(typeof(Helper.MathHelper.OperationType), Operation, true);
+        public Helper.MathHelper.OperationType OperationType {
+            get { return (Helper.MathHelper.OperationType)Enum.Parse(typeof(Helper.MathHelper.OperationType), Operation, true); }
+            set { Operation = value.ToString(); }
+        }
 
         public override bool IsValid { get {
             Helper.MathHelper.OperationType op;

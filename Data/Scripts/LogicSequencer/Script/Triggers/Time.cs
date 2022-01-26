@@ -6,9 +6,9 @@ namespace LogicSequencer.Script.Triggers
     [ProtoContract]
     public class Time : ScriptTrigger
     {
-        [ProtoMember(1)]
-        public DateTime Target { get; set; }
+        [ProtoMember(2)]
+        public TimeSpan Every { get; set; }
 
-        public override bool IsValid => Target != null;
+        public override bool IsValid => Every.TotalSeconds >= 1;
     }
 }

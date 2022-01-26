@@ -37,6 +37,7 @@ namespace LogicSequencer
 
             SetupModAPI();
             RegisterInternalServices();
+            RegisterInternalStateSources();
             TestSerialize();
         }
 
@@ -59,6 +60,7 @@ namespace LogicSequencer
             foreach (var vm in RunningScripts)
                 vm.Stop();
             RunningScripts.Clear();
+            UnregisterStateSources();
             UnregisterServices();
             UnloadModAPI();
 
@@ -66,9 +68,13 @@ namespace LogicSequencer
             Util.Networking.Instance.Unregister();
         }
 
+        uint atTick = 0;
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
+
+            if (atTick++ % 100 == 0)
+                HandleScriptTriggers();
 
             // TODO: Handle script triggers
             foreach (var vm in RunningScripts)
@@ -80,6 +86,7 @@ namespace LogicSequencer
                     {
                         vm.WaitingForDuration = null;
                         vm.WaitingForTrigger = null;
+                        vm.LogicSequencer.ReloadTriggers();
                     }
                 }
             }
@@ -95,47 +102,166 @@ namespace LogicSequencer
         public IEnumerable<Script.ScriptSequence> AvailableScripts()
         {
             yield return new Script.ScriptSequence {
-                Name = "Simple arithmetic",
-                Description = "A simple arithmetic test",
+                Name = "Grid mass warning",
+                Description = "Notifies the player if the grid mass exceeds specific values",
 
                 Variables = new VRage.Serialization.SerializableDictionary<string, Script.ScriptValue> {
                     Dictionary = new Dictionary<string, Script.ScriptValue> {
-                        { "input", new Script.ScriptValue { Integer = 10 } }
+                        { "mass_min", new Script.ScriptValue { Real = 1000 } },
+                        { "mass_med", new Script.ScriptValue { Real = 1500 } },
+                        { "mass_max", new Script.ScriptValue { Real = 2000 } },
+                        { "group_name", new Script.ScriptValue { String = "Mass Warning" } },
+
+                        { "min_color_r", new Script.ScriptValue { Integer = 0 } },
+                        { "min_color_g", new Script.ScriptValue { Integer = 255 } },
+                        { "min_color_b", new Script.ScriptValue { Integer = 0 } },
+
+                        { "med_color_r", new Script.ScriptValue { Integer = 255 } },
+                        { "med_color_g", new Script.ScriptValue { Integer = 255 } },
+                        { "med_color_b", new Script.ScriptValue { Integer = 0 } },
+
+                        { "max_color_r", new Script.ScriptValue { Integer = 255 } },
+                        { "max_color_g", new Script.ScriptValue { Integer = 0 } },
+                        { "max_color_b", new Script.ScriptValue { Integer = 0 } },
                     }
                 },
 
+                Triggers = new List<Script.ScriptTrigger> {
+                    new Script.Triggers.GridChange(),
+                    new Script.Triggers.Time {
+                        Every = TimeSpan.FromMinutes(1)
+                    }
+                },
                 Actions = new List<Script.ScriptAction> {
-                    new Script.Actions.ArithmeticComplex {
-                        TargetVariable = "output",
-                        Part = new Script.Actions.ArithmeticComplexPart {
-                            LHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                DataSource = new Script.DataSource { VariableName = "input" },
+                    new Script.Actions.BlockGetState {
+                        Block = new Script.BlockSelector { Self = true },
+                        StateSource = "grid.mass",
+                        IntoVariable = "grid_mass"
+                    },
+                    new Script.Actions.Choose {
+                        Choices = new List<Script.Actions.Choose.Choice> {
+                            new Script.Actions.Choose.Choice {
+                                Conditions = new List<Script.ScriptCondition> {
+                                    new Script.Conditions.Comparison {
+                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
+                                        ComparisonData = new Script.DataSource { VariableName = "mass_max" },
+                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
+                                    }
+                                },
+                                Actions = new List<Script.ScriptAction> {
+                                    new Script.Actions.CallService {
+                                        Name = "light.turn_on",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "light.color",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
+                                            Dictionary = new Dictionary<string, Script.DataSource> {
+                                                { "Red", new Script.DataSource { VariableName = "color_max_r" } },
+                                                { "Green", new Script.DataSource { VariableName = "color_max_g" } },
+                                                { "Blue", new Script.DataSource { VariableName = "color_max_b" } },
+                                            }
+                                        }
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "sound.start",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        }
+                                    }
+                                }
                             },
-                            RHS = new Script.Actions.ArithmeticComplexPart.Part {
-                                DataSource = new Script.DataSource { Value = new Script.ScriptValue { Integer = 2 } }
+                            new Script.Actions.Choose.Choice {
+                                Conditions = new List<Script.ScriptCondition> {
+                                    new Script.Conditions.Comparison {
+                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
+                                        ComparisonData = new Script.DataSource { VariableName = "mass_med" },
+                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
+                                    }
+                                },
+                                Actions = new List<Script.ScriptAction> {
+                                    new Script.Actions.CallService {
+                                        Name = "light.turn_on",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "light.color",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
+                                            Dictionary = new Dictionary<string, Script.DataSource> {
+                                                { "Red", new Script.DataSource { VariableName = "color_med_r" } },
+                                                { "Green", new Script.DataSource { VariableName = "color_med_g" } },
+                                                { "Blue", new Script.DataSource { VariableName = "color_med_b" } },
+                                            }
+                                        }
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "sound.stop",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                    }
+                                }
                             },
-                            Operator = "Divide"
-                        }
-                    },
-                    new Script.Actions.ConditionAction {
-                        Condition = new Script.Conditions.Comparison {
-                            SourceData = new Script.DataSource { VariableName = "output" },
-                            ComparisonData = new Script.DataSource { Value = new Script.ScriptValue { Integer = 5 } },
-                            Operation = "CompareEqual"
-                        }
-                    },
-                    new Script.Actions.Delay {
-                        Time = TimeSpan.FromSeconds(10)
-                    },
-                    new Script.Actions.ArithmeticSimpleSingle {
-                        Operand = new Script.DataSource { VariableName = "output" },
-                        SingleOperator = "Negate",
-                        TargetVariable = "output"
-                    },
-                    new Script.Actions.StorePermanentVariables {
-                        Variables = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
-                            Dictionary = new Dictionary<string, Script.DataSource> {
-                                { "result", new Script.DataSource { VariableName = "output "} }
+                            new Script.Actions.Choose.Choice {
+                                Conditions = new List<Script.ScriptCondition> {
+                                    new Script.Conditions.Comparison {
+                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
+                                        ComparisonData = new Script.DataSource { VariableName = "mass_min" },
+                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
+                                    }
+                                },
+                                Actions = new List<Script.ScriptAction> {
+                                    new Script.Actions.CallService {
+                                        Name = "light.turn_on",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "light.color",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
+                                            Dictionary = new Dictionary<string, Script.DataSource> {
+                                                { "Red", new Script.DataSource { VariableName = "color_min_r" } },
+                                                { "Green", new Script.DataSource { VariableName = "color_min_g" } },
+                                                { "Blue", new Script.DataSource { VariableName = "color_min_b" } },
+                                            }
+                                        }
+                                    },
+                                    new Script.Actions.CallService {
+                                        Name = "sound.stop",
+                                        Blocks = new Script.MultiBlockSelector {
+                                            GroupName = new Script.DataSource { VariableName = "group_name" }
+                                        },
+                                    }
+                                }
+                            },
+                        },
+
+                        DefaultActions = new List<Script.ScriptAction> {
+                            new Script.Actions.CallService {
+                                Name = "light.turn_off",
+                                Blocks = new Script.MultiBlockSelector {
+                                    GroupName = new Script.DataSource { VariableName = "group_name" }
+                                },
+                            },
+                            new Script.Actions.CallService {
+                                Name = "sound.stop",
+                                Blocks = new Script.MultiBlockSelector {
+                                    GroupName = new Script.DataSource { VariableName = "group_name" }
+                                },
                             }
                         }
                     }
@@ -208,6 +334,7 @@ namespace LogicSequencer
                     new Script.Actions.ArithmeticSimple { },
                     new Script.Actions.ArithmeticSimpleSingle { },
                     new Script.Actions.BlockGetProperty { },
+                    new Script.Actions.BlockGetState { },
                     new Script.Actions.BlockRunAction { },
                     new Script.Actions.BlockSetProperty { },
                     new Script.Actions.CallService { },

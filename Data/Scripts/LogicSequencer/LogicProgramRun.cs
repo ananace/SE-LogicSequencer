@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LogicSequencer.Script;
+using LogicSequencer.Script.Helper;
 using ProtoBuf;
 using Sandbox.ModAPI;
 
@@ -212,6 +213,9 @@ namespace LogicSequencer
 
         public IMyTerminalBlock ResolveBlockSelector(BlockSelector selector)
         {
+            if (selector.Self ?? false)
+                return LogicSequencer.Block;
+
             var terminalSystem = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
             if (terminalSystem == null)
                 throw new ArgumentException("Unable to find a terminal system");
@@ -219,8 +223,12 @@ namespace LogicSequencer
             IMyTerminalBlock block = null;
             if (selector.IDSpecified)
                 block = terminalSystem.GetBlockWithId(selector.ID.Value) as IMyTerminalBlock;
-            if (block == null && !string.IsNullOrEmpty(selector.Name))
-                block = terminalSystem.GetBlockWithName(selector.Name);
+            if (block == null && selector.Name != null)
+            {
+                var name = ResolveDataSource(selector.Name);
+                name.ConvertToString();
+                block = terminalSystem.GetBlockWithName(name.String);
+            }
 
             return block;
         }
@@ -235,16 +243,23 @@ namespace LogicSequencer
                 throw new ArgumentException("Unable to find a terminal system");
 
             List<IMyTerminalBlock> blocks = new List<IMyTerminalBlock>();
-            if (!string.IsNullOrEmpty(selector.GroupName))
+            if (selector.GroupName != null)
             {
-                var group = terminalSystem.GetBlockGroupWithName(selector.GroupName);
+                var groupName = ResolveDataSource(selector.GroupName);
+                groupName.ConvertToString();
+
+                var group = terminalSystem.GetBlockGroupWithName(groupName.String);
                 if (group == null)
                     throw new ArgumentException($"Unable to find a group with the name {selector.GroupName}");
 
                 group.GetBlocks(blocks);
             }
-            else if (!string.IsNullOrEmpty(selector.Name))
-                terminalSystem.SearchBlocksOfName(selector.Name, blocks);
+            else if (selector.Name != null)
+            {
+                var name = ResolveDataSource(selector.Name);
+                name.ConvertToString();
+                terminalSystem.SearchBlocksOfName(name.String, blocks);
+            }
             else
                 throw new ArgumentException("No applicable multiblock selector provided");
 
