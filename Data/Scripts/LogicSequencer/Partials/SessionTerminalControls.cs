@@ -23,10 +23,10 @@ namespace LogicSequencer
             foreach (var control in SequencerControls)
             {
                 controls.Add(control);
-            }
 
-            // foreach (var control in SequenceEditControls)
-            //   controls.Add(control);
+                if (control is IMyTerminalControlListbox)
+                    control.UpdateVisual();
+            }
         }
 
         bool ControlsLoaded = false;

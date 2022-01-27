@@ -314,6 +314,7 @@ namespace LogicSequencer
 
                 Triggers = new List<Script.ScriptTrigger> {
                     new Script.Triggers.Action { },
+                    new Script.Triggers.BlockState { },
                     new Script.Triggers.External { },
                     new Script.Triggers.IGC { },
                     new Script.Triggers.Sun { },

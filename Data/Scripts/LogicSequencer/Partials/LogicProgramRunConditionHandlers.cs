@@ -60,7 +60,7 @@ namespace LogicSequencer
         {
             var realCondition = condition as Script.Conditions.BlockPropertyIs;
 
-            var block = ResolveBlockSelector(realCondition.Block);
+            var block = realCondition.Block.Resolve(this);
             if (block == null)
                 throw new ArgumentException($"Failed to find a block with the selector {realCondition.Block}");
 
@@ -74,7 +74,7 @@ namespace LogicSequencer
                 return false;
 
             if (realCondition.ToCompare != null &&
-                !MathHelper.PerformOperation(MathHelper.OperationType.CompareEqual, ResolveDataSource(realCondition.ToCompare), value).Boolean)
+                !MathHelper.PerformOperation(MathHelper.OperationType.CompareEqual, realCondition.ToCompare.Resolve(Variables), value).Boolean)
                 return false;
 
             if (realCondition.StoreInVariable != null)
@@ -87,8 +87,8 @@ namespace LogicSequencer
         {
             var realCondition = condition as Script.Conditions.Comparison;
 
-            var sourceData = ResolveDataSource(realCondition.SourceData);
-            var comparisonData = ResolveDataSource(realCondition.ComparisonData);
+            var sourceData = realCondition.SourceData.Resolve(Variables);
+            var comparisonData = realCondition.ComparisonData.Resolve(Variables);
 
             return MathHelper.PerformOperation(realCondition.OperationType, sourceData, comparisonData).ConvertToBoolean().Boolean;
         }

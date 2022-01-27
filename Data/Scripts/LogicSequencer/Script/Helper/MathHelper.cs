@@ -88,19 +88,19 @@ namespace LogicSequencer.Script.Helper
         {
             if (part.IsSingle)
             {
-                var data = run.ResolveDataSource(part.RHS.DataSource);
+                var data = part.RHS.DataSource.Resolve(run.Variables);
                 return DoOperation(part.SingleOperatorType, data);
             }
 
             ScriptValue lhs, rhs;
 
             if (part.LHS.IsData)
-                lhs = run.ResolveDataSource(part.LHS.DataSource);
+                lhs = part.LHS.DataSource.Resolve(run.Variables);
             else
                 lhs = ResolveArithmeticPart(part.LHS.Arithmetic, run);
 
             if (part.RHS.IsData)
-                rhs = run.ResolveDataSource(part.RHS.DataSource);
+                rhs = part.RHS.DataSource.Resolve(run.Variables);
             else
                 rhs = ResolveArithmeticPart(part.RHS.Arithmetic, run);
 

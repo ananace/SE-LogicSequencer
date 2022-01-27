@@ -21,8 +21,9 @@ namespace LogicSequencer
             _ActionHandlers.Add(typeof(Script.Actions.ArithmeticSimple), HandleArithmeticSimpleAction);
             _ActionHandlers.Add(typeof(Script.Actions.ArithmeticSimpleSingle), HandleArithmeticSimpleSingleAction);
             _ActionHandlers.Add(typeof(Script.Actions.BlockGetProperty), HandleBlockGetPropertyAction);
-            _ActionHandlers.Add(typeof(Script.Actions.BlockSetProperty), HandleBlockSetPropertyAction);
+            _ActionHandlers.Add(typeof(Script.Actions.BlockGetState), HandleBlockGetStateAction);
             _ActionHandlers.Add(typeof(Script.Actions.BlockRunAction), HandleBlockRunActionAction);
+            _ActionHandlers.Add(typeof(Script.Actions.BlockSetProperty), HandleBlockSetPropertyAction);
             _ActionHandlers.Add(typeof(Script.Actions.CallService), HandleCallServiceAction);
             _ActionHandlers.Add(typeof(Script.Actions.Choose), HandleChooseAction);
             _ActionHandlers.Add(typeof(Script.Actions.ConditionAction), HandleConditionAction);
@@ -66,7 +67,7 @@ namespace LogicSequencer
         {
             var realAction = action as Script.Actions.ArithmeticSimple;
 
-            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.OperatorType, realAction.Operands.Select(d => ResolveDataSource(d)));
+            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.OperatorType, realAction.Operands.Select(d => d.Resolve(Variables)));
             Log.Debug($"Stored {realAction.TargetVariable} as {Variables[realAction.TargetVariable]} after {realAction}");
         }
 
@@ -74,7 +75,7 @@ namespace LogicSequencer
         {
             var realAction = action as Script.Actions.ArithmeticSimpleSingle;
 
-            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.SingleOperatorType, ResolveDataSource(realAction.Operand));
+            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.SingleOperatorType, realAction.Operand.Resolve(Variables));
             Log.Debug($"Stored {realAction.TargetVariable} as {Variables[realAction.TargetVariable]} after {realAction}");
         }
 
@@ -84,7 +85,7 @@ namespace LogicSequencer
 
             var gts = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
 
-            var block = ResolveBlockSelector(realAction.Block);
+            var block = realAction.Block.Resolve(this);
             if (block == null)
                 throw new ArgumentException($"Failed to find a block with the selector {realAction.Block}");
 
@@ -101,13 +102,27 @@ namespace LogicSequencer
             Log.Debug($"Stored {realAction.IntoVariable} as {value} after {realAction}");
         }
 
+        void HandleBlockGetStateAction(ScriptAction action)
+        {
+            var realAction = action as Script.Actions.BlockGetState;
+
+            var source = Session.Instance.RegisteredStateSources.FirstOrDefault(s => s.Name == realAction.StateSource);
+            if (source == null)
+                throw new ArgumentException($"Failed to find a state source with the identifier {realAction.StateSource}");
+
+            var block = realAction.Block.Resolve(this);
+
+            Variables[realAction.IntoVariable] = source.Read(block);
+            Log.Debug($"Stored {realAction.IntoVariable} as {Variables[realAction.IntoVariable]} after {realAction}");
+        }
+
         void HandleBlockSetPropertyAction(ScriptAction action)
         {
             var realAction = action as Script.Actions.BlockSetProperty;
 
             var gts = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
 
-            var block = ResolveBlockSelector(realAction.Block);
+            var block = realAction.Block.Resolve(this);
             if (block == null)
                 throw new ArgumentException($"Failed to find a block with the selector {realAction.Block}");
 
@@ -115,7 +130,7 @@ namespace LogicSequencer
             if (prop == null)
                 throw new ArgumentException($"Failed to find a property with the name {realAction.Property}");
 
-            var value = ResolveDataSource(realAction.Source);
+            var value = realAction.Source.Resolve(Variables);
             prop.SetScriptValue(block, value);
 
             Log.Debug($"Set property {realAction.Property} to {value} in {realAction}");
@@ -127,7 +142,7 @@ namespace LogicSequencer
 
             var gts = MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(LogicSequencer.Block.CubeGrid);
 
-            var block = ResolveBlockSelector(realAction.Block);
+            var block = realAction.Block.Resolve(this);
             if (block == null)
                 throw new ArgumentException($"Failed to find a block with the selector {realAction.Block}");
 
@@ -148,12 +163,12 @@ namespace LogicSequencer
             if (service == null)
                 throw new ArgumentException($"Failed to find a service with the name {realAction.Name}");
 
-            var blocks = ResolveMultiBlockSelector(realAction.Blocks);
+            var blocks = realAction.Blocks.Resolve(this);
 
             // Filter out only the paramters wanted by the service
             var providedParameters = realAction.Parameters.Dictionary
                 .Where(kv => service.AvailableParameters.Any(p => p.Name == kv.Key))
-                .Select(kv => new KeyValuePair<string,ScriptValue>(kv.Key, ResolveDataSource(kv.Value)))
+                .Select(kv => new KeyValuePair<string,ScriptValue>(kv.Key, kv.Value.Resolve(Variables)))
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
 
             // Ensure all required parameters are provided
@@ -260,7 +275,7 @@ namespace LogicSequencer
             var realAction = action as Script.Actions.SetVariables;
             foreach (var variable in realAction.Variables.Dictionary)
             {
-                Variables[variable.Key] = ResolveDataSource(variable.Value);
+                Variables[variable.Key] = variable.Value.Resolve(Variables);
                 Log.Debug($"Stored {variable.Key} as {Variables[variable.Key]} in {realAction}");
             }
         }
@@ -270,7 +285,7 @@ namespace LogicSequencer
             var realAction = action as Script.Actions.SetVariables;
             foreach (var variable in realAction.Variables.Dictionary)
             {
-                LogicSequencer.Script.Variables[variable.Key] = ResolveDataSource(variable.Value);
+                LogicSequencer.Script.Variables[variable.Key] = variable.Value.Resolve(Variables);
                 Log.Debug($"Permanently stored {variable.Key} as {LogicSequencer.Script.Variables[variable.Key]} in {realAction}");
             }
             LogicSequencer.SettingsChanged(Blocks.LogicSequencer.ChangedSettingsFlags.Script);

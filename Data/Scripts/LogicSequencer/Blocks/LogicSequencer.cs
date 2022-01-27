@@ -101,6 +101,7 @@ namespace LogicSequencer.Blocks
 
                 OnStarted?.Invoke(vm);
                 LastStarted = DateTime.Now;
+                NeedsUpdate |= MyEntityUpdateEnum.EACH_10TH_FRAME;
 
                 Entity.Components.Get<MyResourceSinkComponent>()?.Update();
             }
@@ -114,6 +115,11 @@ namespace LogicSequencer.Blocks
             try
             {
                 Session.Instance.RunningScripts.Remove(vm);
+                if (!CurrentExecutions.Any())
+                {
+                    UpdateEmissives();
+                    NeedsUpdate &= ~MyEntityUpdateEnum.EACH_10TH_FRAME;
+                }
 
                 Entity.Components.Get<MyResourceSinkComponent>()?.Update();
             }
@@ -130,6 +136,8 @@ namespace LogicSequencer.Blocks
                 foreach (var vm in toStop)
                     vm.Stop();
 
+                UpdateEmissives();
+                NeedsUpdate &= ~MyEntityUpdateEnum.EACH_10TH_FRAME;
                 Entity.Components.Get<MyResourceSinkComponent>()?.Update();
             }
             catch (Exception ex)
@@ -192,6 +200,9 @@ namespace LogicSequencer.Blocks
                 Block.CubeGrid.OnBlockAdded += HandleGridChange;
                 Block.CubeGrid.OnBlockRemoved += HandleGridChange;
             }
+            else
+                Session.Instance.RegisterTrigger(trigger, this);
+            activeTriggers.Add(trigger);
         }
         void RemoveTrigger(ScriptTrigger trigger)
         {
@@ -200,6 +211,9 @@ namespace LogicSequencer.Blocks
                 Block.CubeGrid.OnBlockAdded -= HandleGridChange;
                 Block.CubeGrid.OnBlockRemoved -= HandleGridChange;
             }
+            else
+                Session.Instance.UnregisterTrigger(trigger);
+            activeTriggers.Remove(trigger);
         }
 
         public void ReloadTriggers()
@@ -322,6 +336,8 @@ namespace LogicSequencer.Blocks
                 Block.AppendingCustomInfo -= SequenceAppendCustomInfo;
 
                 SequenceStopAll();
+                foreach (var trigger in activeTriggers)
+                    RemoveTrigger(trigger);
 
                 Block = null;
                 NeedsUpdate = MyEntityUpdateEnum.NONE;
@@ -378,7 +394,6 @@ namespace LogicSequencer.Blocks
             try
             {
                 SyncSettings();
-                UpdateEmissives();
 
                 if (!Block.IsFunctional)
                  return;
