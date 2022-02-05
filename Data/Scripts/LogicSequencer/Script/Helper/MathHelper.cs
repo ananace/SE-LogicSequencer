@@ -84,29 +84,6 @@ namespace LogicSequencer.Script.Helper
             _TypeCastEnd,
         }
 
-        public static ScriptValue ResolveArithmeticPart(Actions.ArithmeticComplexPart part, LogicProgramRun run)
-        {
-            if (part.IsSingle)
-            {
-                var data = part.RHS.DataSource.Resolve(run.Variables);
-                return DoOperation(part.SingleOperatorType, data);
-            }
-
-            ScriptValue lhs, rhs;
-
-            if (part.LHS.IsData)
-                lhs = part.LHS.DataSource.Resolve(run.Variables);
-            else
-                lhs = ResolveArithmeticPart(part.LHS.Arithmetic, run);
-
-            if (part.RHS.IsData)
-                rhs = part.RHS.DataSource.Resolve(run.Variables);
-            else
-                rhs = ResolveArithmeticPart(part.RHS.Arithmetic, run);
-
-            return PerformOperation(part.OperatorType, lhs, rhs);
-        }
-
         public static ScriptValue DoOperation(OperationType op, IEnumerable<ScriptValue> objects)
         {
             var result = objects.First();

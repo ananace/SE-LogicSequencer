@@ -13,6 +13,7 @@ namespace LogicSequencer.API
 {
     using ModRegistrationDefinition = MyTuple<
         string,
+        string,
         Action<
             Action<ModServiceDefinition>,
             Action<string>
@@ -22,6 +23,7 @@ namespace LogicSequencer.API
     public class Registration : IDisposable
     {
         const long registerId = 1337, waitForRegistrationId = 9000000000000000000 + registerId;
+        const string REGISTRATION_VERSION = "1";
 
         public bool IsRegistered { get; private set; }
 
@@ -100,6 +102,7 @@ namespace LogicSequencer.API
         void RequestRegistration()
         {
             MyAPIUtilities.Static.SendModMessage(registerId, new ModRegistrationDefinition(
+                REGISTRATION_VERSION,
                 Name,
                 (register, unregister) => {
                     RegisterServiceFunction = register;

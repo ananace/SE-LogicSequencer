@@ -31,8 +31,8 @@ namespace LogicSequencer
 
         bool ControlsLoaded = false;
 
-        const string PROPERTY_PREFIX = "LogicSequencer.";
-        const string CONTROL_PREFIX = "LogicSequencer.Terminal.";
+        const string PROPERTY_PREFIX = "Ananace.LogicSequencer.";
+        const string CONTROL_PREFIX = "Ananace.LogicSequencer.Terminal.";
         void PrepareCustomControls()
         {
             if (ControlsLoaded)
@@ -192,12 +192,35 @@ namespace LogicSequencer
                 control.Title = VRage.Utils.MyStringId.GetOrCompute("Script");
                 control.Enabled = isSequencer;
                 control.Visible = isSequencer;
+                control.VisibleRowsCount = 10;
                 control.ListContent = (block, list, selected) => {
-                    foreach (var script in AvailableScripts())
+                    var logic = block?.GameLogic as Blocks.LogicSequencer;
+                    if (logic == null)
+                        return;
+
+                    foreach (var script in AvailableScripts)
+                    {
+                        Util.Log.Debug($"Adding script {script.Name} to script list");
                         list.Add(new VRage.ModAPI.MyTerminalControlListBoxItem(VRage.Utils.MyStringId.GetOrCompute(script.Name), VRage.Utils.MyStringId.GetOrCompute(script.Description), script));
+                    }
                 };
                 control.ItemSelected = (block, selected) => {
                     selectedScript = selected.FirstOrDefault().UserData as Script.ScriptSequence;
+                };
+                // TC.AddControl<IMyUpgradeModule>(control);
+                SequencerControls.Add(control);
+            }
+
+            if (Util.Log.DebugEnabled)
+            {
+                var control = TC.CreateControl<IMyTerminalControlButton, IMyUpgradeModule>(CONTROL_PREFIX+"ScriptRefresh");
+                control.Title = VRage.Utils.MyStringId.GetOrCompute("Refresh");
+                control.Tooltip = VRage.Utils.MyStringId.GetOrCompute("Refresh the list of available scripts");
+                control.Enabled = isSequencer;
+                control.Visible = isSequencer;
+                control.Action = (block) => {
+                    _sequences = null;
+                    SequencerControls.OfType<IMyTerminalControlListbox>().First().UpdateVisual();
                 };
                 // TC.AddControl<IMyUpgradeModule>(control);
                 SequencerControls.Add(control);

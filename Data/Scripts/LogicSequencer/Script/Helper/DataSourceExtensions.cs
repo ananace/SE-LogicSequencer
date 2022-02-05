@@ -13,6 +13,8 @@ namespace LogicSequencer.Script.Helper
                     return variables[dataSource.VariableName];
                 else if (dataSource.HasValue)
                     return dataSource.Value;
+                else if (dataSource.HasArithmetic)
+                    return dataSource.Arithmetic.Resolve(variables);
                 else
                     throw new ArgumentException("Unable to resolve datasource");
             }

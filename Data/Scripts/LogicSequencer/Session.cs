@@ -38,7 +38,9 @@ namespace LogicSequencer
             SetupModAPI();
             RegisterInternalServices();
             RegisterInternalStateSources();
-            TestSerialize();
+
+            if (Util.Log.DebugEnabled)
+                TestSerialize();
         }
 
         public override void SaveData()
@@ -68,10 +70,73 @@ namespace LogicSequencer
             Util.Networking.Instance.Unregister();
         }
 
+        void UpdateFirstTick()
+        {
+            // Implicitly loads, and also logs the loading result.
+            Util.Log.Info($"Loaded {AvailableScripts.Count} sequences.");
+
+            if (!MyAPIGateway.Utilities.FileExistsInLocalStorage("List.txt", GetType()))
+                using (var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage("List.txt", GetType()))
+                {
+                    writer.WriteLine("# This is a list of logic sequences to load, from this folder");
+                    writer.WriteLine("# Can be written with - or without - their .xml extension");
+                    writer.WriteLine("# Lines starting with a # will be ignored");
+                    writer.WriteLine();
+                    writer.WriteLine("#My Sequence.xml");
+                }
+
+            try
+            {
+                if (!MyAPIGateway.Utilities.FileExistsInLocalStorage("Template.xml", GetType()))
+                {
+                    using (var writer = MyAPIGateway.Utilities.WriteFileInLocalStorage("Template.xml", GetType()))
+                    {
+                        writer.WriteLine(MyAPIGateway.Utilities.SerializeToXML(new Script.ScriptSequence {
+                            Name = "Template",
+                            Description = "This is a template for a sequence, copy and rename it in a new file",
+
+                            Variables = new VRage.Serialization.SerializableDictionary<string, Script.ScriptValue> {
+                                Dictionary = new Dictionary<string, Script.ScriptValue> {
+                                    { "example_bool", new Script.ScriptValue { Boolean = true } },
+                                    { "example_int", new Script.ScriptValue { Integer = 9001 } },
+                                    { "example_real", new Script.ScriptValue { Real = 1.21 } },
+                                    { "example_string", new Script.ScriptValue { String = "Hello world" } }
+                                }
+                            },
+
+                            Triggers = new List<Script.ScriptTrigger> {
+                                { new Script.Triggers.Action { Name = "When Used" } },
+                                { new Script.Triggers.GridChange { Name = "When grid changed" } }
+                            },
+                            Conditions = new List<Script.ScriptCondition> {
+                                { new Script.Conditions.Comparison { SourceData = new Script.DataSource { VariableName = "example_int" }, ComparisonData = new Script.DataSource { VariableName = "example_real" }, OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterThan } }
+                            },
+                            Actions = new List<Script.ScriptAction> {
+                                { new Script.Actions.CallService { Name = "functional.turn_on", Blocks = new Script.MultiBlockSelector { GroupName = new Script.DataSource { Value = new Script.ScriptValue { String = "All my blocks" } } } } }
+                            }
+                        }));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Util.Log.Error("When writing sequence template", ex, GetType());
+
+                MyAPIGateway.Utilities.DeleteFileInLocalStorage("Template.xml", GetType());
+            }
+        }
+
         uint atTick = 0;
+        bool firstTick = false;
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
+
+            if (!firstTick)
+            {
+                firstTick = true;
+                UpdateFirstTick();
+            }
 
             if (atTick++ % 100 == 0)
                 HandleScriptTriggers();
@@ -99,175 +164,89 @@ namespace LogicSequencer
 
         }
 
-        public IEnumerable<Script.ScriptSequence> AvailableScripts()
-        {
-            yield return new Script.ScriptSequence {
-                Name = "Grid mass warning",
-                Description = "Notifies the player if the grid mass exceeds specific values",
+        const string MOD_DATA_PATH = "Data\\Sequences";
 
-                Variables = new VRage.Serialization.SerializableDictionary<string, Script.ScriptValue> {
-                    Dictionary = new Dictionary<string, Script.ScriptValue> {
-                        { "mass_min", new Script.ScriptValue { Real = 1000 } },
-                        { "mass_med", new Script.ScriptValue { Real = 1500 } },
-                        { "mass_max", new Script.ScriptValue { Real = 2000 } },
-                        { "group_name", new Script.ScriptValue { String = "Mass Warning" } },
+        List<Script.ScriptSequence> _sequences = null;
+        public IReadOnlyList<Script.ScriptSequence> AvailableScripts { get {
+            if (_sequences != null)
+                return _sequences;
 
-                        { "min_color_r", new Script.ScriptValue { Integer = 0 } },
-                        { "min_color_g", new Script.ScriptValue { Integer = 255 } },
-                        { "min_color_b", new Script.ScriptValue { Integer = 0 } },
+            _sequences = new List<Script.ScriptSequence>();
 
-                        { "med_color_r", new Script.ScriptValue { Integer = 255 } },
-                        { "med_color_g", new Script.ScriptValue { Integer = 255 } },
-                        { "med_color_b", new Script.ScriptValue { Integer = 0 } },
+            Action<System.IO.TextReader, MyObjectBuilder_Checkpoint.ModItem?> _loadSequencesFrom = (reader, mod) => {
+                while (reader.Peek() != -1)
+                {
+                    var line = reader.ReadLine();
+                    if (string.IsNullOrEmpty(line) || string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
 
-                        { "max_color_r", new Script.ScriptValue { Integer = 255 } },
-                        { "max_color_g", new Script.ScriptValue { Integer = 0 } },
-                        { "max_color_b", new Script.ScriptValue { Integer = 0 } },
-                    }
-                },
+                    // Support both listing with exact name and without extension
+                    var file = line.Trim().Replace(".xml", "") + ".xml";
+                    Util.Log.Debug($"Loading sequence {file}...");
+                    if (mod != null)
+                    {
+                        if (!MyAPIGateway.Utilities.FileExistsInModLocation($"{MOD_DATA_PATH}\\{file}", mod.Value))
+                        {
+                            Util.Log.Info($"Sequence file \"{file}\" listed in mod {mod.Value.FriendlyName} doesn't exist, ignoring.");
+                            continue;
+                        }
 
-                Triggers = new List<Script.ScriptTrigger> {
-                    new Script.Triggers.GridChange(),
-                    new Script.Triggers.Time {
-                        Every = TimeSpan.FromMinutes(1)
-                    }
-                },
-                Actions = new List<Script.ScriptAction> {
-                    new Script.Actions.BlockGetState {
-                        Block = new Script.BlockSelector { Self = true },
-                        StateSource = "grid.mass",
-                        IntoVariable = "grid_mass"
-                    },
-                    new Script.Actions.Choose {
-                        Choices = new List<Script.Actions.Choose.Choice> {
-                            new Script.Actions.Choose.Choice {
-                                Conditions = new List<Script.ScriptCondition> {
-                                    new Script.Conditions.Comparison {
-                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
-                                        ComparisonData = new Script.DataSource { VariableName = "mass_max" },
-                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
-                                    }
-                                },
-                                Actions = new List<Script.ScriptAction> {
-                                    new Script.Actions.CallService {
-                                        Name = "light.turn_on",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "light.color",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
-                                            Dictionary = new Dictionary<string, Script.DataSource> {
-                                                { "Red", new Script.DataSource { VariableName = "color_max_r" } },
-                                                { "Green", new Script.DataSource { VariableName = "color_max_g" } },
-                                                { "Blue", new Script.DataSource { VariableName = "color_max_b" } },
-                                            }
-                                        }
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "sound.start",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        }
-                                    }
-                                }
-                            },
-                            new Script.Actions.Choose.Choice {
-                                Conditions = new List<Script.ScriptCondition> {
-                                    new Script.Conditions.Comparison {
-                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
-                                        ComparisonData = new Script.DataSource { VariableName = "mass_med" },
-                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
-                                    }
-                                },
-                                Actions = new List<Script.ScriptAction> {
-                                    new Script.Actions.CallService {
-                                        Name = "light.turn_on",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "light.color",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
-                                            Dictionary = new Dictionary<string, Script.DataSource> {
-                                                { "Red", new Script.DataSource { VariableName = "color_med_r" } },
-                                                { "Green", new Script.DataSource { VariableName = "color_med_g" } },
-                                                { "Blue", new Script.DataSource { VariableName = "color_med_b" } },
-                                            }
-                                        }
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "sound.stop",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                    }
-                                }
-                            },
-                            new Script.Actions.Choose.Choice {
-                                Conditions = new List<Script.ScriptCondition> {
-                                    new Script.Conditions.Comparison {
-                                        SourceData = new Script.DataSource { VariableName = "grid_mass" },
-                                        ComparisonData = new Script.DataSource { VariableName = "mass_min" },
-                                        OperationType = Script.Helper.MathHelper.OperationType.CompareGreaterEqual
-                                    }
-                                },
-                                Actions = new List<Script.ScriptAction> {
-                                    new Script.Actions.CallService {
-                                        Name = "light.turn_on",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "light.color",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                        Parameters = new VRage.Serialization.SerializableDictionary<string, Script.DataSource> {
-                                            Dictionary = new Dictionary<string, Script.DataSource> {
-                                                { "Red", new Script.DataSource { VariableName = "color_min_r" } },
-                                                { "Green", new Script.DataSource { VariableName = "color_min_g" } },
-                                                { "Blue", new Script.DataSource { VariableName = "color_min_b" } },
-                                            }
-                                        }
-                                    },
-                                    new Script.Actions.CallService {
-                                        Name = "sound.stop",
-                                        Blocks = new Script.MultiBlockSelector {
-                                            GroupName = new Script.DataSource { VariableName = "group_name" }
-                                        },
-                                    }
-                                }
-                            },
-                        },
-
-                        DefaultActions = new List<Script.ScriptAction> {
-                            new Script.Actions.CallService {
-                                Name = "light.turn_off",
-                                Blocks = new Script.MultiBlockSelector {
-                                    GroupName = new Script.DataSource { VariableName = "group_name" }
-                                },
-                            },
-                            new Script.Actions.CallService {
-                                Name = "sound.stop",
-                                Blocks = new Script.MultiBlockSelector {
-                                    GroupName = new Script.DataSource { VariableName = "group_name" }
-                                },
+                        try
+                        {
+                            using (var sequenceReader = MyAPIGateway.Utilities.ReadFileInModLocation($"{MOD_DATA_PATH}\\{file}", mod.Value))
+                            {
+                                var script = MyAPIGateway.Utilities.SerializeFromXML<Script.ScriptSequence>(sequenceReader.ReadToEnd());
+                                _sequences.Add(script);
                             }
+                        }
+                        catch (Exception ex)
+                        {
+                            Util.Log.Error($"When loading sequence \"{file}\" from mod {mod.Value.FriendlyName}, ignoring.", ex, GetType(), false);
+                        }
+                    }
+                    else
+                    {
+                        if (!MyAPIGateway.Utilities.FileExistsInLocalStorage(file, GetType()))
+                        {
+                            Util.Log.Info($"Sequence file \"{file}\" listed in local storage doesn't exist, ignoring.");
+                            continue;
+                        }
+
+                        try
+                        {
+                            using (var sequenceReader = MyAPIGateway.Utilities.ReadFileInLocalStorage(file, GetType()))
+                            {
+                                var script = MyAPIGateway.Utilities.SerializeFromXML<Script.ScriptSequence>(sequenceReader.ReadToEnd());
+                                _sequences.Add(script);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Util.Log.Error($"When loading sequence \"{file}\" from local storage, ignoring.", ex, GetType(), false);
                         }
                     }
                 }
             };
-        }
+
+            if (MyAPIGateway.Utilities.FileExistsInLocalStorage("List.txt", GetType()))
+            {
+                Util.Log.Debug("Loading sequences from local storage...");
+                using (var reader = MyAPIGateway.Utilities.ReadFileInLocalStorage("List.txt", GetType()))
+                    _loadSequencesFrom(reader, null);
+            }
+
+            foreach(var mod in MyAPIGateway.Session.Mods)
+            {
+                if (!MyAPIGateway.Utilities.FileExistsInModLocation($"{MOD_DATA_PATH}\\List.txt", mod))
+                    continue;
+
+                Util.Log.Debug($"Loading sequences from mod {mod.FriendlyName}...");
+                using (var reader = MyAPIGateway.Utilities.ReadFileInModLocation($"{MOD_DATA_PATH}\\List.txt", mod))
+                    _loadSequencesFrom(reader, mod);
+            }
+
+            return _sequences;
+        } }
 
         public void ShowEditor(Blocks.LogicSequencer sequencer)
         {
@@ -276,8 +255,9 @@ namespace LogicSequencer
 
             SequenceEditor.Script = sequencer.Script;
 
-            SequenceEditor.Visible = true;
             HudMain.EnableCursor = true;
+            SequenceEditor.Visible = true;
+            SequenceEditor.GetFocus();
         }
         public void HideEditor()
         {
@@ -316,8 +296,8 @@ namespace LogicSequencer
                     new Script.Triggers.Action { },
                     new Script.Triggers.BlockState { },
                     new Script.Triggers.External { },
+                    new Script.Triggers.GridChange { },
                     new Script.Triggers.IGC { },
-                    new Script.Triggers.Sun { },
                     new Script.Triggers.Time { },
                 },
                 Conditions = new List<Script.ScriptCondition> {
@@ -331,9 +311,6 @@ namespace LogicSequencer
                     new Script.Conditions.VariableIsType { },
                 },
                 Actions = new List<Script.ScriptAction> {
-                    new Script.Actions.ArithmeticComplex { },
-                    new Script.Actions.ArithmeticSimple { },
-                    new Script.Actions.ArithmeticSimpleSingle { },
                     new Script.Actions.BlockGetProperty { },
                     new Script.Actions.BlockGetState { },
                     new Script.Actions.BlockRunAction { },
@@ -351,15 +328,10 @@ namespace LogicSequencer
                 }
             };
 
-            try
-            {
-                var serialized = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(testScript));
-                var unserialized = MyAPIGateway.Utilities.SerializeFromBinary<Script.ScriptSequence>(Convert.FromBase64String(serialized));
-            }
-            catch (Exception ex)
-            {
-                Util.Log.Error("In TestSerialize()", ex, GetType());
-            }
+            var serialized = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(testScript));
+            var serializedXML = MyAPIGateway.Utilities.SerializeToXML(testScript);
+            var unserialized = MyAPIGateway.Utilities.SerializeFromBinary<Script.ScriptSequence>(Convert.FromBase64String(serialized));
+            var unserializedXML = MyAPIGateway.Utilities.SerializeFromXML<Script.ScriptSequence>(serializedXML);
         }
     }
 }

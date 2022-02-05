@@ -77,7 +77,6 @@ namespace LogicSequencer
             // Triggers.External is handled in SessionTerminalControls
             // Triggers.GridChange is handled in Blocks.LogicSequencer
             // Triggers.IGC not yet handled
-            // Triggers.Sun not yet handled
             // Triggers.Time is handled here
 
             foreach (var registered in _RegisteredTriggers)

@@ -14,6 +14,6 @@ namespace LogicSequencer.Script.Actions
         [ProtoMember(3)]
         public VRage.Serialization.SerializableDictionary<string, DataSource> Parameters { get; set; }
 
-        public override bool IsValid => !string.IsNullOrEmpty(Name) && Parameters != null && Blocks.IsValid;
+        public override bool IsValid => !string.IsNullOrEmpty(Name) && Blocks.IsValid;
     }
 }

@@ -6,7 +6,7 @@ using ProtoBuf;
 namespace LogicSequencer.Script.Triggers
 {
     [ProtoContract]
-    class BlockState : ScriptTrigger
+    public class BlockState : ScriptTrigger
     {
         [ProtoMember(1)]
         public string StateSource { get; set; }

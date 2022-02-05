@@ -31,6 +31,7 @@ namespace LogicSequencer.Blocks
 
         readonly List<ScriptTrigger> activeTriggers = new List<ScriptTrigger>();
         ScriptSequence _Script = new ScriptSequence();
+
         public ScriptSequence Script { get { return _Script ?? new ScriptSequence(); } set { _Script = value ?? new ScriptSequence(); ReloadScript(); SettingsChanged(ChangedSettingsFlags.Script); } }
         public IMyUpgradeModule Block { get; private set; }
 
@@ -142,7 +143,7 @@ namespace LogicSequencer.Blocks
             }
             catch (Exception ex)
             {
-                Log.Error("SequenceStop()", ex, GetType());
+                Log.Error("SequenceStopAll()", ex, GetType());
             }
         }
 
@@ -220,8 +221,8 @@ namespace LogicSequencer.Blocks
         {
             // Set up triggers
             var wanted = Script.Triggers.Concat(CurrentExecutions.Select(vm => vm.WaitingForTrigger).Where(t => t != null));
-            var toAdd = wanted.Except(activeTriggers);
-            var toRemove = activeTriggers.Except(wanted);
+            var toAdd = wanted.Except(activeTriggers).ToList();
+            var toRemove = activeTriggers.Except(wanted).ToList();
 
             foreach (var add in toAdd)
                 AddTrigger(add);
@@ -278,18 +279,22 @@ namespace LogicSequencer.Blocks
                     if (!string.IsNullOrEmpty(Script.Description))
                         builder.AppendLine(Script.Description);
                     builder.AppendLine();
-                }
 
-                if (IsRunning)
-                {
-                    builder.AppendLine("State: Active");
-                    builder.AppendLine("Current executions:");
-                    foreach (var execution in CurrentExecutions)
-                        builder.AppendLine($" - For {DateTime.Now - execution.StartedAt}: {execution.StateName} at step {execution.CurrentExecutionStep} in {execution.CurrentExecutionTag}");
+                    if (IsRunning)
+                    {
+                        builder.AppendLine("State: Active");
+                        builder.AppendLine("Current executions:");
+                        foreach (var execution in CurrentExecutions)
+                            builder.AppendLine($" - For {DateTime.Now - execution.StartedAt}: {execution.StateName} at step {execution.CurrentExecutionStep} in {execution.CurrentExecutionTag}");
+                    }
+                    else
+                    {
+                        builder.AppendLine("State: Idle");
+                    }
                 }
                 else
                 {
-                    builder.AppendLine("State: Idle");
+                    builder.AppendLine("State: Waiting for script");
                 }
             }
             catch (Exception ex)

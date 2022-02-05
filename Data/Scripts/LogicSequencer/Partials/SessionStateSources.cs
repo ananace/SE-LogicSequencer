@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.ModAPI;
-using ModParameter = VRage.MyTuple<string, string, System.Type, bool, object>;
 
 namespace LogicSequencer
 {

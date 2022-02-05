@@ -17,9 +17,6 @@ namespace LogicSequencer
 
         void InitializeActionHandlers()
         {
-            _ActionHandlers.Add(typeof(Script.Actions.ArithmeticComplex), HandleArithmeticComplexAction);
-            _ActionHandlers.Add(typeof(Script.Actions.ArithmeticSimple), HandleArithmeticSimpleAction);
-            _ActionHandlers.Add(typeof(Script.Actions.ArithmeticSimpleSingle), HandleArithmeticSimpleSingleAction);
             _ActionHandlers.Add(typeof(Script.Actions.BlockGetProperty), HandleBlockGetPropertyAction);
             _ActionHandlers.Add(typeof(Script.Actions.BlockGetState), HandleBlockGetStateAction);
             _ActionHandlers.Add(typeof(Script.Actions.BlockRunAction), HandleBlockRunActionAction);
@@ -54,30 +51,6 @@ namespace LogicSequencer
                 Log.Info($"Invoking {action} took {actionTimer.ElapsedMilliseconds} ms");
         }
 
-        void HandleArithmeticComplexAction(ScriptAction action)
-        {
-            Log.Debug("HandleArithmeticComplexAction()");
-            var realAction = action as Script.Actions.ArithmeticComplex;
-
-            Variables[realAction.TargetVariable] = MathHelper.ResolveArithmeticPart(realAction.Part, this);
-            Log.Debug($"Stored {realAction.TargetVariable} as {Variables[realAction.TargetVariable]} after {realAction}");
-        }
-
-        void HandleArithmeticSimpleAction(ScriptAction action)
-        {
-            var realAction = action as Script.Actions.ArithmeticSimple;
-
-            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.OperatorType, realAction.Operands.Select(d => d.Resolve(Variables)));
-            Log.Debug($"Stored {realAction.TargetVariable} as {Variables[realAction.TargetVariable]} after {realAction}");
-        }
-
-        void HandleArithmeticSimpleSingleAction(ScriptAction action)
-        {
-            var realAction = action as Script.Actions.ArithmeticSimpleSingle;
-
-            Variables[realAction.TargetVariable] = MathHelper.DoOperation(realAction.SingleOperatorType, realAction.Operand.Resolve(Variables));
-            Log.Debug($"Stored {realAction.TargetVariable} as {Variables[realAction.TargetVariable]} after {realAction}");
-        }
 
         void HandleBlockGetPropertyAction(ScriptAction action)
         {
@@ -166,7 +139,7 @@ namespace LogicSequencer
             var blocks = realAction.Blocks.Resolve(this);
 
             // Filter out only the paramters wanted by the service
-            var providedParameters = realAction.Parameters.Dictionary
+            var providedParameters = (realAction.Parameters ?? new VRage.Serialization.SerializableDictionary<string, DataSource>()).Dictionary
                 .Where(kv => service.AvailableParameters.Any(p => p.Name == kv.Key))
                 .Select(kv => new KeyValuePair<string,ScriptValue>(kv.Key, kv.Value.Resolve(Variables)))
                 .ToDictionary(kv => kv.Key, kv => kv.Value);

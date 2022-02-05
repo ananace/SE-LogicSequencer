@@ -9,15 +9,13 @@ namespace LogicSequencer.Script
     [ProtoInclude(102, typeof(Triggers.External))]
     [ProtoInclude(103, typeof(Triggers.GridChange))]
     [ProtoInclude(104, typeof(Triggers.IGC))]
-    [ProtoInclude(105, typeof(Triggers.Sun))]
-    [ProtoInclude(106, typeof(Triggers.Time))]
+    [ProtoInclude(105, typeof(Triggers.Time))]
     [ProtoContract]
     [XmlInclude(typeof(Triggers.Action))]
     [XmlInclude(typeof(Triggers.BlockState))]
     [XmlInclude(typeof(Triggers.External))]
     [XmlInclude(typeof(Triggers.GridChange))]
     [XmlInclude(typeof(Triggers.IGC))]
-    [XmlInclude(typeof(Triggers.Sun))]
     [XmlInclude(typeof(Triggers.Time))]
     // Abstract class instead of interface to make XML serialization possible
     public abstract class ScriptTrigger : IScriptPiece, IEquatable<ScriptTrigger>
